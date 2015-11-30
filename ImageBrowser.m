@@ -11,6 +11,7 @@
 //#import "ImageServices.h"
 
 #define SYSTEM_VERSION_LESS_THAN(v) ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedAscending)
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
 #define PADDING    10
 
 @interface ImageBrowser()<TapZoomingViewDelegate>
@@ -18,7 +19,30 @@
 @end
 
 @implementation ImageBrowser {
-
+    // Appearance
+    BOOL _previousNavBarHidden;
+    BOOL _previousNavBarTranslucent;
+    UIBarStyle _previousNavBarStyle;
+    UIStatusBarStyle _previousStatusBarStyle;
+    UIColor *_previousNavBarTintColor;
+    UIColor *_previousNavBarBarTintColor;
+    UIBarButtonItem *_previousViewControllerBackButton;
+    UIImage *_previousNavigationBarBackgroundImageDefault;
+    UIImage *_previousNavigationBarBackgroundImageLandscapePhone;
+    
+    // Misc
+    BOOL _hasBelongedToViewController;
+    BOOL _isVCBasedStatusBarAppearance;
+    BOOL _statusBarShouldBeHidden;
+    BOOL _displayActionButton;
+    BOOL _leaveStatusBarAlone;
+    BOOL _performingLayout;
+    BOOL _rotating;
+    BOOL _viewIsActive; // active as in it's in the view heirarchy
+    BOOL _didSavePreviousStateOfNavBar;
+    BOOL _skipNextPagingScrollViewPositioning;
+    BOOL _viewHasAppearedInitially;
+    CGPoint _currentGridContentOffset;
 }
 
 - (id)init {
@@ -50,7 +74,11 @@
 }
 
 - (BOOL)prefersStatusBarHidden {
-    return self.navigationController.navigationBarHidden;
+    return _isHidden;
+}
+
+- (UIStatusBarAnimation)preferredStatusBarUpdateAnimation {
+    return UIStatusBarAnimationSlide;
 }
 
 - (void)loadView {
@@ -144,7 +172,6 @@
     [super viewDidLoad];
     self.navigationController.view.backgroundColor = [UIColor blackColor];
     self.navigationController.interactivePopGestureRecognizer.enabled = NO;
-    _isHidden = NO;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -209,7 +236,7 @@
 - (void)deleteImage {
     if (_removeImage) {
         _removeImage(_zoomArray[_currentIndex], _currentIndex);
-        [self.navigationController popViewControllerAnimated:NO];
+        [self.navigationController popViewControllerAnimated:YES];
     }
 //    NSString *fileName = _zoomArray[_currentIndex];
 //    NSString *filePath = [NSString stringWithFormat:@"%@/%@",_localRootPath, fileName];
@@ -228,11 +255,13 @@
 #pragma mark - Tap gesture
 
 - (void)HandleTap:(UITapGestureRecognizer*)gesture {
-    [UIView animateWithDuration:0.2f animations:^{
-        [self toggleHideNavigationBar:!_isHidden];
-    } completion:^(BOOL finished){
-        _isHidden = !_isHidden;
+    _isHidden = !_isHidden;
+    [self prefersStatusBarHidden];
+    [self setNeedsStatusBarAppearanceUpdate];
+    [UIView animateWithDuration:0.2 animations:^{
+        [self toggleHideNavigationBar:_isHidden];
     }];
+    [self.navigationController setNavigationBarHidden:_isHidden animated:YES];
 }
 
 - (void)toggleHideNavigationBar:(BOOL)isHidden {
@@ -246,14 +275,12 @@
         frame.origin.y -= frame.size.height;
         _toolBar.frame = frame;
     }
-    
-    frame = self.navigationController.navigationBar.frame;
-    if (isHidden) {
-        frame.origin.y -= 64;
-        self.navigationController.navigationBar.frame = frame;
-    }else {
-        frame.origin.y += 64;
-        self.navigationController.navigationBar.frame = frame;
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    if (_isHidden) {
+        [self HandleTap:nil];
     }
 }
 
@@ -261,12 +288,7 @@
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
     if (!_isHidden) {
-        _isHidden = YES;
-        [UIView animateWithDuration:0.5f animations:^{
-            [self toggleHideNavigationBar:YES];
-        } completion:^(BOOL finished){
-            _isHidden = YES;
-        }];
+        [self HandleTap:nil];
     }
 }
 
