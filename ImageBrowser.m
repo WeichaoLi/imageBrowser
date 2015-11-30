@@ -21,28 +21,6 @@
 @implementation ImageBrowser {
     // Appearance
     BOOL _previousNavBarHidden;
-    BOOL _previousNavBarTranslucent;
-    UIBarStyle _previousNavBarStyle;
-    UIStatusBarStyle _previousStatusBarStyle;
-    UIColor *_previousNavBarTintColor;
-    UIColor *_previousNavBarBarTintColor;
-    UIBarButtonItem *_previousViewControllerBackButton;
-    UIImage *_previousNavigationBarBackgroundImageDefault;
-    UIImage *_previousNavigationBarBackgroundImageLandscapePhone;
-    
-    // Misc
-    BOOL _hasBelongedToViewController;
-    BOOL _isVCBasedStatusBarAppearance;
-    BOOL _statusBarShouldBeHidden;
-    BOOL _displayActionButton;
-    BOOL _leaveStatusBarAlone;
-    BOOL _performingLayout;
-    BOOL _rotating;
-    BOOL _viewIsActive; // active as in it's in the view heirarchy
-    BOOL _didSavePreviousStateOfNavBar;
-    BOOL _skipNextPagingScrollViewPositioning;
-    BOOL _viewHasAppearedInitially;
-    CGPoint _currentGridContentOffset;
 }
 
 - (id)init {
@@ -279,6 +257,7 @@
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
+    _previousNavBarHidden = YES;
     if (_isHidden) {
         [self HandleTap:nil];
     }
@@ -287,7 +266,7 @@
 #pragma mark - UIScrollViewDelegate
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
-    if (!_isHidden) {
+    if (!_isHidden && _previousNavBarHidden) {
         [self HandleTap:nil];
     }
 }
