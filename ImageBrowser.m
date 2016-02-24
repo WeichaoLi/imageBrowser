@@ -240,6 +240,7 @@
         [self toggleHideNavigationBar:_isHidden];
     }];
     [self.navigationController setNavigationBarHidden:_isHidden animated:YES];
+    [[UIApplication sharedApplication] setStatusBarHidden:_isHidden];
 }
 
 - (void)toggleHideNavigationBar:(BOOL)isHidden {
